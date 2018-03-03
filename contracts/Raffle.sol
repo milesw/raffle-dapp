@@ -31,7 +31,7 @@ contract Raffle is Ownable {
         require(
             _openTime != 0 &&
             _closeTime != 0 &&
-            _closeTime > openTime &&
+            _closeTime > _openTime &&
             _ticketPrice != 0 &&
             _goal != 0 &&
             _escrowWallet != address(0)
@@ -72,25 +72,33 @@ contract Raffle is Ownable {
     function finalizeRaffleByTime() public {
         require(!isFinalized && now > closeTime);
 
-        uint256 winningNumber = drawRandomNumber();
+        if (ticketsSold() > 0) {
+            uint256 winningNumber = drawRandomNumber();
+            raffleWinner = ticketHolders[winningNumber];
+        }
 
-        raffleWinner = ticketHolders[winningNumber];
         isFinalized = true;
     }
 
     function finalizeRaffleByGoalReached() public onlyOwner {
         require(!isFinalized && weiRaised() >= goal);
 
-        uint256 winningNumber = drawRandomNumber();
+        if (ticketsSold() > 0) {
+            uint256 winningNumber = drawRandomNumber();
+            raffleWinner = ticketHolders[winningNumber];
+        }
 
-        raffleWinner = ticketHolders[winningNumber];
         isFinalized = true;
     }
 
     function ticketsSold() public view returns(uint256) {
         return ticketHolders.length;
     }
-    
+
+    function allTicketHolders() public view returns(address[]) {
+        return ticketHolders;
+    }
+
     function drawRandomNumber() internal pure returns(uint256) {
         // we don't know yet
         return 2;
