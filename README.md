@@ -16,10 +16,10 @@ This box comes with everything you need to start using smart contracts from a re
    truffle unbox react
    ```
 
-3. Run the development console.
+3. Run the development blockchain.
 
    ```javascript
-   truffle develop
+   ganache-cli -b 3 --account="0xee4e871def4e297da77f99d57de26000e86077528847341bc637d2543f8db6e2, 1000000000000000000000000" --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501201, 1000000000000000000000000"
    ```
 
 4. Compile and migrate the smart contracts. Note inside the development console we don't preface commands with `truffle`.
