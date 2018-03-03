@@ -55,7 +55,7 @@ contract Raffle is Ownable {
         payable
     {
         require(msg.value == numberOfTickets.mul(ticketPrice));
-        require(!isFinalized);
+        require(!isFinalized && msg.value > 0);
 
         for (uint256 i; i < numberOfTickets; i++) {
             ticketHolders.push(msg.sender);
@@ -87,8 +87,13 @@ contract Raffle is Ownable {
         isFinalized = true;
     }
 
+    function ticketsSold() public view returns(uint256) {
+        return ticketHolders.length;
+    }
+    
     function drawRandomNumber() internal pure returns(uint256) {
         // we don't know yet
         return 2;
     }
+
 }
