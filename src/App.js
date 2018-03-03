@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import SimpleStorageContract from '../build/contracts/SimpleStorage.json';
+import RaffleContract from '../build/contracts/Raffle.json';
 import getWeb3 from './utils/getWeb3';
 
 import etherImg from './ether.jpg'
@@ -20,14 +20,15 @@ class App extends Component {
         super(props);
 
         this.state = {
-            storageValue: 0,
             web3: null,
             numberOfTickets: 1,
-            numberOfTicketsBought: 20,
+            numberOfTicketsBought: 0,
             numberOfTicketsProcessedSuccessfully: 4,
             ticketNumberTotal: 1000000,
             ticketNumberBoughtTotal: 560230,
         };
+
+        this.web3 = null
     }
 
     componentWillMount() {
@@ -36,55 +37,90 @@ class App extends Component {
 
         getWeb3
             .then(results => {
-                this.setState({
-                    web3: results.web3
-                });
+                this.web3 = results.web3
 
                 // Instantiate contract once web3 provided.
-                this.instantiateContract();
+                this.instantiateContract(this.web3);
             })
             .catch(() => {
                 console.log('Error finding web3.');
             });
     }
 
-    instantiateContract() {
+    instantiateContract (web3) {
         /*
-     * SMART CONTRACT EXAMPLE
-     *
-     * Normally these functions would be called in the context of a
-     * state management library, but for convenience I've placed them here.
-     */
+         * SMART CONTRACT EXAMPLE
+         *
+         * Normally these functions would be called in the context of a
+         * state management library, but for convenience I've placed them here.
+         */
 
         const contract = require('truffle-contract');
-        const simpleStorage = contract(SimpleStorageContract);
-        simpleStorage.setProvider(this.state.web3.currentProvider);
+        const raffle = contract(RaffleContract);
+        raffle.setProvider(web3.currentProvider);
 
-        // Declaring this for later so we can chain functions on SimpleStorage.
-        var simpleStorageInstance;
+        // Declaring this for later so we can chain functions on raffle.
+        var raffleInstance;
 
         // Get accounts.
-        // this.state.web3.eth.getAccounts((error, accounts) => {
-        //     simpleStorage
-        //         .deployed()
-        //         .then(instance => {
-        //             simpleStorageInstance = instance;
-
-        //             // Stores a given value, 5 by default.
-        //             return simpleStorageInstance.set(7, { from: accounts[0] });
-        //         })
-        //         .then(result => {
-        //             // Get the value from the contract to prove it worked.
-        //             return simpleStorageInstance.get.call(accounts[0]);
-        //         })
-        //         .then(result => {
-        //             // Update state with the result.
-        //             return this.setState({ storageValue: result.c[0] });
-        //         });
-        // });
+        web3.eth.getAccounts((error, accounts) => {
+            raffle
+                .deployed()
+                .then(instance => {
+                    raffleInstance = instance;
+                    // Stores a given value, 5 by default.
+                    return Promise.all([
+                        raffleInstance.goal(),
+                        raffleInstance.allTicketHolders(),
+                        raffleInstance.weiRaised(),
+                        raffleInstance.ticketsSold(),
+                        raffleInstance.isFinalized(),
+                    ])
+                })
+                .then(result => {
+                    console.log(result)
+                    console.log(result[1])
+                    // Update state with the result.
+                    return this.setState({
+                        numberOfTicketsBought: (result[1] || []).filter(_ => _ === accounts[0]).length,
+                        ticketNumberBoughtTotal: result[3] ? web3.fromWei(result[3].toNumber(), 'ether'): 0,
+                        goal: result[0] ? web3.fromWei(result[0].toNumber(), 'ether'): 0,
+                        raised: result[2] ? web3.fromWei(result[2].toNumber(), 'ether'): 0,
+                        finalized: result[4] || false
+                    });
+                });
+        });
     }
 
+    order () {
+        getWeb3
+            .then(results => {
+                 const web3 = results.web3
+
+                const contract = require('truffle-contract');
+                 const raffle = contract(RaffleContract);
+                raffle.setProvider(web3.currentProvider);
+
+        // Declaring this for later so we can chain functions on raffle.
+                var raffleInstance;
+
+                web3.eth.getAccounts((error, accounts) => {
+                    raffle
+                        .deployed()
+                        .then(instance => {
+                            instance.ticketPrice()
+                            .then(price => {
+                                console.log(price)
+                                const { numberOfTickets } = this.state 
+                                instance.purchaseTickets(numberOfTickets, {value: numberOfTickets * price, from: accounts[0]})
+                            })
+                        })
+                })
+        })
+    } 
+
     render() {
+        console.log(this.state)
         return (
             <div className="">
                 <div className="text-center">
@@ -137,10 +173,10 @@ class App extends Component {
                         >+</button>
                     </div>
                     <div className="cell small-12 medium-8">
-                        <button className="button large expanded warning mb0">Buy {localizeTicket(this.state.numberOfTickets)}</button>
+                        <button className="button large expanded warning mb0" onClick={() => this.order()}>Buy {localizeTicket(this.state.numberOfTickets)}</button>
                     </div>
                 </div>
-                <div className="grid-x">
+                {this.state.numberOfTicketsBought ? <div className="grid-x">
                     <hr className="cell" />
                     <div className="cell">
                         <p className='text-center h4'>You have bought {localizeTicket(this.state.numberOfTicketsBought)}</p>
@@ -158,7 +194,7 @@ class App extends Component {
                         <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully)} are still processing.</p>
                     </div>
                     <hr className="cell" />
-                </div>
+                </div> : null}
                 <div className="grid-x align-spaced">
                     <div className="cell">
                         <p className='text-center h4'>How it works?</p>

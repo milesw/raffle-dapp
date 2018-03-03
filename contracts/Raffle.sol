@@ -71,6 +71,10 @@ contract Raffle is Ownable {
 
         //forward funds to escrow
         escrowWallet.transfer(msg.value);
+
+        if (weiRaised() >= goal) {
+          finalize();
+        }
     }
 
     function weiRaised() public view returns(uint256) {
