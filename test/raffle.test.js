@@ -12,7 +12,7 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
     let raffle;
     let openTime, closeTime;
 
-    const newRaffle = ticketPrice => {
+    const newRaffle = goal => {
         openTime = latestTime() + duration.seconds(20); // crowdsale starts in 20 seconds
         closeTime = openTime + duration.days(60);
 
@@ -20,7 +20,7 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
     };
 
     beforeEach('setup contract', async () => {
-        raffle = await newRaffle(ticketPrice);
+        raffle = await newRaffle(goal);
     });
 
     describe('initial values', () => {
@@ -76,6 +76,8 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
         });
 
         it('does NOT allow buyers to send an inccorect amount for the purchase', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
             try {
                 await raffle.purchaseTickets(1, { value: ticketPrice + 1 });
                 assert.fail();
@@ -87,13 +89,184 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
             tickets.should.be.bignumber.equal(0);
         });
 
-        it('must NOT allow to purchase tickets after the raffle finalization');
-        it('must NOT allow to purchase tickets with zero value');
+        it("must NOT allow to purchase tickets after the raffle's finalization", async () => {
+            await increaseTimeTo(latestTime() + duration.days(65));
 
-        it('allows user to buy one ticket');
-        it('allows user to buy multiple ticket');
-        it(
-            'transfer funds to escrowWallet - no funds should be in the raffle contract'
-        );
+            try {
+                await raffle.purchaseTickets(1, { value: ticketPrice });
+                assert.fail();
+            } catch (error) {
+                ensuresException(error);
+            }
+
+            const tickets = await raffle.ticketsSold();
+            tickets.should.be.bignumber.equal(0);
+        });
+
+        it('must NOT allow to purchase tickets with zero value', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            try {
+                await raffle.purchaseTickets(0, { value: 0 });
+                assert.fail();
+            } catch (error) {
+                ensuresException(error);
+            }
+
+            const tickets = await raffle.ticketsSold();
+            tickets.should.be.bignumber.equal(0);
+        });
+
+        it('allows user to buy one ticket', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer1
+            });
+
+            const tickets = await raffle.ticketsSold();
+            tickets.should.be.bignumber.equal(1);
+        });
+
+        it('allows user to buy multiple ticket', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.purchaseTickets(10, { value: ticketPrice * 10 });
+
+            const tickets = await raffle.ticketsSold();
+            tickets.should.be.bignumber.equal(10);
+        });
+
+        it('transfer funds to escrowWallet - no funds should be in the raffle contract', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+            const escrowWalletBalanceBefore = await web3.eth.getBalance(
+                escrowWallet
+            );
+
+            await raffle.purchaseTickets(10, { value: ticketPrice * 10 });
+
+            const weiRaised = await raffle.weiRaised();
+            weiRaised.should.be.bignumber.equal(ticketPrice * 10);
+
+            const weiInsideRaffleContract = await web3.eth.getBalance(
+                raffle.address
+            );
+
+            weiInsideRaffleContract.should.be.bignumber.equal(0);
+
+            const escrowWalletBalanceAfter = await web3.eth.getBalance(
+                escrowWallet
+            );
+            escrowWalletBalanceAfter.should.be.bignumber.equal(
+                escrowWalletBalanceBefore.add(weiRaised)
+            );
+        });
+    });
+
+    describe('raffle finalization', () => {
+        it('cannot call it when it is already finalized', async () => {
+            await increaseTimeTo(latestTime() + duration.days(65));
+            await raffle.finalizeRaffleByTime();
+
+            try {
+                await raffle.finalizeRaffleByTime();
+                assert.fail();
+            } catch (e) {
+                ensuresException(e);
+            }
+
+            try {
+                await raffle.finalizeRaffleByGoalReached({ from: owner });
+                assert.fail();
+            } catch (e) {
+                ensuresException(e);
+            }
+        });
+
+        it('is NOT called before reaching the goal or before the end time', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.purchaseTickets(1, { value: ticketPrice });
+
+            try {
+                await raffle.finalizeRaffleByTime();
+                assert.fail();
+            } catch (e) {
+                ensuresException(e);
+            }
+
+            try {
+                await raffle.finalizeRaffleByGoalReached({ from: owner });
+                assert.fail();
+            } catch (e) {
+                ensuresException(e);
+            }
+        });
+
+        it('there is no winner when no one has participated in the raffle', async () => {
+            await increaseTimeTo(latestTime() + duration.days(65));
+            await raffle.finalizeRaffleByTime();
+
+            const winner = await raffle.raffleWinner();
+            winner.should.be.equal(
+                '0x0000000000000000000000000000000000000000'
+            );
+
+            const isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.true;
+        });
+
+        it('only the owner is able to call finalize by goal', async () => {
+            raffle = await newRaffle(new BigNumber(20));
+
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+            await raffle.purchaseTickets(3, {
+                value: ticketPrice * 3,
+                from: buyer2
+            });
+
+            try {
+                await raffle.finalizeRaffleByGoalReached({ from: buyer1 });
+                assert.fail();
+            } catch (e) {
+                ensuresException(e);
+            }
+
+            let isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.false;
+
+            await raffle.finalizeRaffleByGoalReached({ from: owner });
+
+            isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.true;
+        });
+
+        it('finalizes and has a winner', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer2
+            });
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer2
+            });
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer2
+            });
+
+            await increaseTimeTo(latestTime() + duration.days(65));
+
+            await raffle.finalizeRaffleByTime();
+
+            const winner = await raffle.raffleWinner();
+            winner.should.be.equal(buyer2);
+
+            const isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.true;
+        });
     });
 });
