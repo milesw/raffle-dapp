@@ -95,6 +95,10 @@ contract Raffle is Ownable {
         return ticketHolders.length;
     }
 
+    function allTicketHolders() public view returns(address[]) {
+        return ticketHolders;
+    }
+
     function drawRandomNumber() internal pure returns(uint256) {
         // we don't know yet
         return 2;
