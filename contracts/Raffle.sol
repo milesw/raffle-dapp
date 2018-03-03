@@ -63,32 +63,32 @@ contract Raffle is Ownable {
 
         //forward funds to escrow
         escrowWallet.transfer(msg.value);
+
+        if (weiRaised() >= goal) {
+          finalize();
+        }
     }
 
     function weiRaised() public view returns(uint256) {
         return ticketHolders.length.mul(ticketPrice);
     }
 
+    function finalize() internal {
+      if (ticketsSold() > 0) {
+        uint256 winningNumber = drawRandomNumber();
+        raffleWinner = ticketHolders[winningNumber];
+      }
+      isFinalized = true;
+    }
+
     function finalizeRaffleByTime() public {
         require(!isFinalized && now > closeTime);
-
-        if (ticketsSold() > 0) {
-            uint256 winningNumber = drawRandomNumber();
-            raffleWinner = ticketHolders[winningNumber];
-        }
-
-        isFinalized = true;
+        finalize();
     }
 
     function finalizeRaffleByGoalReached() public onlyOwner {
         require(!isFinalized && weiRaised() >= goal);
-
-        if (ticketsSold() > 0) {
-            uint256 winningNumber = drawRandomNumber();
-            raffleWinner = ticketHolders[winningNumber];
-        }
-
-        isFinalized = true;
+        finalize();
     }
 
     function ticketsSold() public view returns(uint256) {
