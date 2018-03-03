@@ -1,0 +1,7 @@
+{
+  "standard.enable": false,
+  "files.exclude": {
+    "__error": "Not found",
+    "Users/palm/Downloads/foundation-6.4.2-complete": true
+  }
+}
