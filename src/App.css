@@ -5,9 +5,14 @@ body,
   font-family: 'Open Sans', sans-serif;
 }
 
-h1, h2, h3 {
-  font-family: 'Oswald', 'Arial Narrow', sans-serif;
+.mb0 {
+  margin-bottom: 0;
 }
+
+.fh {
+  height: 100%;
+}
+
 
 code {
   display: block;
