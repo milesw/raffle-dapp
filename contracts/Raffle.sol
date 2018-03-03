@@ -1,6 +1,7 @@
 pragma solidity 0.4.19;
 
 import "./SafeMath.sol";
+import "./DrawRandomNumber.sol";
 import "./Ownable.sol";
 
 
@@ -17,6 +18,9 @@ contract Raffle is Ownable {
     address[] public ticketHolders;
     bool public isFinalized;
     address public raffleWinner;
+    bytes32 public oraclizeQueryId;
+
+    DrawRandomNumber public drawRandomNumber;
 
     function Raffle
         (
@@ -24,7 +28,8 @@ contract Raffle is Ownable {
             uint256 _closeTime,
             uint256 _ticketPrice,
             uint256 _goal,
-            address _escrowWallet
+            address _escrowWallet,
+            address _drawRandomNumber
         )
         public
     {
@@ -34,7 +39,8 @@ contract Raffle is Ownable {
             _closeTime > _openTime &&
             _ticketPrice != 0 &&
             _goal != 0 &&
-            _escrowWallet != address(0)
+            _escrowWallet != address(0) &&
+            _drawRandomNumber != address(0)
         );
 
         openTime = _openTime;
@@ -42,6 +48,8 @@ contract Raffle is Ownable {
         ticketPrice = _ticketPrice;
         goal = _goal;
         escrowWallet = _escrowWallet;
+
+        drawRandomNumber = DrawRandomNumber(_drawRandomNumber);
     }
 
     modifier withinRafflePeriod() {
@@ -69,26 +77,20 @@ contract Raffle is Ownable {
         return ticketHolders.length.mul(ticketPrice);
     }
 
-    function finalizeRaffleByTime() public {
+    function requestRandomNumberByTime() public onlyOwner {
         require(!isFinalized && now > closeTime);
 
         if (ticketsSold() > 0) {
-            uint256 winningNumber = drawRandomNumber();
-            raffleWinner = ticketHolders[winningNumber];
+            requestRandomNumber();
         }
-
-        isFinalized = true;
     }
 
-    function finalizeRaffleByGoalReached() public onlyOwner {
+    function requestRandomNumberByGoalReached() public onlyOwner {
         require(!isFinalized && weiRaised() >= goal);
 
         if (ticketsSold() > 0) {
-            uint256 winningNumber = drawRandomNumber();
-            raffleWinner = ticketHolders[winningNumber];
+            requestRandomNumber();
         }
-
-        isFinalized = true;
     }
 
     function ticketsSold() public view returns(uint256) {
@@ -99,9 +101,17 @@ contract Raffle is Ownable {
         return ticketHolders;
     }
 
-    function drawRandomNumber() internal pure returns(uint256) {
-        // we don't know yet
-        return 2;
+    function findWinnerAndFinalize() public onlyOwner {
+        uint256 randomNumber = drawRandomNumber.randomNumbers(oraclizeQueryId);
+        require(!isFinalized && randomNumber != 0);
+
+        // random number returns between 1 and ticketsSold but the array is from 0 to ticketsSold - 1
+        raffleWinner = ticketHolders[randomNumber - 1];
+        isFinalized = true;
+    }
+
+    function requestRandomNumber() internal {
+        oraclizeQueryId = drawRandomNumber.generateRandomNum(ticketsSold());
     }
 
 }
