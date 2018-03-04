@@ -7,7 +7,7 @@ const BigNumber = web3.BigNumber;
 
 contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
     const purchaseAmount = new BigNumber(1000);
-    const goal = new BigNumber(100e18);
+    const goal = new BigNumber(100e17);
 
     let raffle, weiRaised;
     let openTime, closeTime;
