@@ -16,7 +16,7 @@ contract SharesRaffle {
       uint256 cap;
     }
     Entry[] public entries;
-    uint256 totalWei;
+    uint256 public totalWei;
     bool public isFinalized;
     address public raffleWinner;
 

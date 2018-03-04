@@ -9,7 +9,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
     const purchaseAmount = new BigNumber(1000);
     const goal = new BigNumber(100e18);
 
-    let raffle;
+    let raffle, weiRaised;
     let openTime, closeTime;
 
     const newRaffle = goal => {
@@ -17,7 +17,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
         openTime = latestTime() + duration.seconds(20);
         closeTime = openTime + duration.days(60);
 
-        return RaffleShares.new(openTime, closeTime, goal, escrowWallet);
+        return SharesRaffle.new(openTime, closeTime, goal, escrowWallet);
     };
 
     beforeEach('setup contract', async () => {
@@ -46,7 +46,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
         });
     });
 
-    describe('ticket purchases', () => {
+    describe('ticket purchases', async () => {
         it('must not allow entering raffle before and after the raffle timeframe', async () => {
             // The raffle will start 20 seconds in the future
             try {
@@ -55,7 +55,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             } catch (error) {
                 ensuresException(error);
             }
-            let weiRaised = await raffle.totalWei;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(0);
 
             // Move the current time 65 days in the future to be after raffle end
@@ -66,7 +66,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             } catch (error) {
                 ensuresException(error);
             }
-            weiRaised = await raffle.weiRaised();
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(0);
         });
 
@@ -79,7 +79,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             } catch (error) {
                 ensuresException(error);
             }
-            const weiRaised = await raffle.weiRaised;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(0);
         });
 
@@ -96,7 +96,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             } catch (error) {
                 ensuresException(error);
             }
-            const weiRaised = await raffle.weiRaised;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(goal);
         });
 
@@ -107,7 +107,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
                 value: 1,
                 from: buyer1
             });
-            const weiRaised = await raffle.weiRaised;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(1);
         });
 
@@ -115,7 +115,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             await increaseTimeTo(latestTime() + duration.seconds(50));
 
             await raffle.submitEntry({ value: 10 });
-            const weiRaised = await raffle.weiRaised;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(10);
         });
 
@@ -126,14 +126,14 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
                 value: 1,
                 from: buyer1
             });
-            let weiRaised = await raffle.weiRaised;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(1);
 
             await raffle.submitEntry({
                 value: 1,
                 from: buyer1
             });
-            weiRaised = await raffle.weiRaised;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(2);
         });
 
@@ -144,7 +144,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             );
 
             await raffle.submitEntry({ value: 10 });
-            const weiRaised = await raffle.totalWei;
+            weiRaised = await raffle.totalWei();
             weiRaised.should.be.bignumber.equal(10);
 
             // Ensure there is no wei left in the raffle contract
