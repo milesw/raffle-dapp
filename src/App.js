@@ -14,7 +14,7 @@ import './css/open-sans.css';
 import './css/pure-min.css';
 import './App.css';
 
-const address = '0xf58a9079b3d9f63a7135afca82f81b3d0f119897'
+const address = '0x7C51030DB238D61848A0d9112c236d7C8ca98b09'
 
 const localizeTicket = ticketNumber => `${ticketNumber} ${ticketNumber === 1 ? 'ticket' : 'tickets' }`
 
