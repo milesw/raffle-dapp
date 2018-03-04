@@ -14,8 +14,11 @@ This box comes with everything you need to start using smart contracts from a re
 
 * 10 wei ticket price and 100 wei goal: 0x9694a1a5132397df30ec95502d6fcc3d00ab3f2e
   [https://rinkeby.etherscan.io/address/0x9694a1a5132397df30ec95502d6fcc3d00ab3f2e](https://rinkeby.etherscan.io/address/0x9694a1a5132397df30ec95502d6fcc3d00ab3f2e)
-* 0.1 ETH ticket price and 1 ether goal: 0x9dc353492872014cc9c2985a0824df43b55c8cab
+* 0.0001 ETH ticket price and 1 ether goal: 0x9dc353492872014cc9c2985a0824df43b55c8cab
   [https://rinkeby.etherscan.io/address/0x9dc353492872014cc9c2985a0824df43b55c8cab](https://rinkeby.etherscan.io/address/0x9dc353492872014cc9c2985a0824df43b55c8cab)
+
+* 0.1 ETH ticket price and 1 ether goal: 0xf58a9079b3d9f63a7135afca82f81b3d0f119897
+  [https://rinkeby.etherscan.io/address/0xf58a9079b3d9f63a7135afca82f81b3d0f119897](https://rinkeby.etherscan.io/address/0xf58a9079b3d9f63a7135afca82f81b3d0f119897)
 
 ### Raffle ABI
 
