@@ -182,7 +182,7 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
     });
 
     describe('raffle finalization', () => {
-        it('has query id when requesting random number', async () => {
+        it('requests a random number', async () => {
             await increaseTimeTo(latestTime() + duration.seconds(50));
 
             await raffle.purchaseTickets(1, {
@@ -193,9 +193,6 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
             await increaseTimeTo(latestTime() + duration.days(65));
 
             await raffle.requestRandomNumber();
-
-            const queryId = await raffle.oraclizeQueryId();
-            expect(queryId).to.exist;
 
             const isFinalized = await raffle.isFinalized();
             isFinalized.should.be.true;

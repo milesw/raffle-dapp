@@ -2,11 +2,10 @@ pragma solidity 0.4.19;
 
 import "./SafeMath.sol";
 import "./DrawRandomNumber.sol";
-import "./Ownable.sol";
 
 
 // @dev Raffle smart contract - contains all business logic
-contract Raffle is Ownable {
+contract Raffle {
     using SafeMath for uint256;
 
     uint256 public openTime;
@@ -18,7 +17,6 @@ contract Raffle is Ownable {
     address[] public ticketHolders;
     bool public isFinalized;
     address public raffleWinner;
-    bytes32 public oraclizeQueryId;
 
     DrawRandomNumber public drawRandomNumber;
 
@@ -102,14 +100,14 @@ contract Raffle is Ownable {
     {
         require(raffleWinner == address(0));
 
-        // random number returns between 1 and ticketsSold but the array is from 0 to ticketsSold - 1
-        raffleWinner = ticketHolders[randomNumber - 1];
+        // random number returns between 0 and ticketsSold - 1
+        raffleWinner = ticketHolders[randomNumber];
         isFinalized = true;
     }
 
     function requestRandomNumber() public isElegibleToBeFinalized {
         if (ticketsSold() > 0)
-            oraclizeQueryId = drawRandomNumber.generateRandomNum(ticketsSold(), this);
+            drawRandomNumber.generateRandomNum(ticketsSold(), this);
     }
 
 }

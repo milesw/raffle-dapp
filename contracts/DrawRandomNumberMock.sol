@@ -18,16 +18,15 @@ contract DrawRandomNumberMock {
     {
         require(raffleData[_queryId].isValid);
 
-        // this is an efficient way to get the uint out in the [1, maxRange] range
+        // this is an efficient way to get the uint out in the [0, maxRange) range
         uint256 randomNumber = uint(keccak256(_result)) % raffleData[_queryId].maxRange;
-        randomNumber += 1;
 
         raffleData[_queryId].randomNumber = randomNumber;
         Raffle(raffleData[_queryId].raffleContractAddress).setWinnerAndFinalize(randomNumber);
     }
 
     // mock generateRandomNum
-    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable returns(bytes32) {
+    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable {
         uint256 hardCodedResult = 30;
         // create a mock query id
         bytes32 queryId = keccak256(hardCodedResult);
@@ -37,7 +36,5 @@ contract DrawRandomNumberMock {
         raffleData[queryId].isValid = true;
 
         __callback(queryId, '30');
-
-        return queryId;
     }
 }
