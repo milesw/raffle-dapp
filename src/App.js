@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import RaffleContract from '../build/contracts/Raffle.json';
+//import RaffleContract from '../build/contracts/Raffle.json';
 import getWeb3 from './utils/getWeb3';
 import GallerySlider from './GallerySlider.js';
 
@@ -15,6 +15,9 @@ import './css/pure-min.css';
 import './App.css';
 
 const localizeTicket = ticketNumber => `${ticketNumber} ${ticketNumber === 1 ? 'ticket' : 'tickets' }`
+
+
+const RaffleContract = [{"constant":true,"inputs":[],"name":"ticketPrice","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"goal","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"raffleWinner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"closeTime","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"isFinalized","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"escrowWallet","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"ticketHolders","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"openTime","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"drawRandomNumber","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[{"name":"_openTime","type":"uint256"},{"name":"_closeTime","type":"uint256"},{"name":"_ticketPrice","type":"uint256"},{"name":"_goal","type":"uint256"},{"name":"_escrowWallet","type":"address"},{"name":"_drawRandomNumber","type":"address"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[{"name":"numberOfTickets","type":"uint256"}],"name":"purchaseTickets","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[],"name":"weiRaised","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"ticketsSold","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"allTicketHolders","outputs":[{"name":"","type":"address[]"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"randomNumber","type":"uint256"}],"name":"setWinnerAndFinalize","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"requestRandomNumber","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}];
 
 class App extends Component {
     constructor(props) {
@@ -59,25 +62,21 @@ class App extends Component {
             .then(results => {
                 // Instantiate contract once web3 provided.
                 const web3 = results.web3
-                const contract = require('truffle-contract');
-                const raffle = contract(RaffleContract);
-                raffle.setProvider(web3.currentProvider);
+                // const contract = require('truffle-contract');
+                // const raffle = contract(RaffleContract);
+                const RaffleABI = web3.eth.contract(RaffleContract);
+                const raffleInstance = RaffleABI.at('0x9dc353492872014cc9c2985a0824df43b55c8cab');
+                // raffle.setProvider(web3.currentProvider);
         
                 // Get accounts.
                 web3.eth.getAccounts((error, accounts) => {
-                    raffle
-                        .deployed()
-                        .then(instance => {
-                            const raffleInstance = instance;
-                            // Stores a given value, 5 by default.
-                            return Promise.all([
-                                raffleInstance.goal(),
-                                raffleInstance.allTicketHolders(),
-                                raffleInstance.weiRaised(),
-                                raffleInstance.ticketsSold(),
-                                raffleInstance.isFinalized(),
-                            ])
-                        })
+                    Promise.all([
+                        new Promise((resolve, reject) => raffleInstance.goal((error, data) => error ? reject(error): resolve(data))),
+                        new Promise((resolve, reject) => raffleInstance.allTicketHolders((error, data) => error ? reject(error): resolve(data))),
+                        new Promise((resolve, reject) => raffleInstance.weiRaised((error, data) => error ? reject(error): resolve(data))),
+                        new Promise((resolve, reject) => raffleInstance.ticketsSold((error, data) => error ? reject(error): resolve(data))),
+                        new Promise((resolve, reject) => raffleInstance.isFinalized((error, data) => error ? reject(error): resolve(data))),
+                    ])
                         .then(result => {
                             console.log('get data...')
                             // Update state with the result.
@@ -113,55 +112,59 @@ class App extends Component {
             .then(results => {
                  const web3 = results.web3
 
-                const contract = require('truffle-contract');
-                 const raffle = contract(RaffleContract);
-                raffle.setProvider(web3.currentProvider);
 
-                web3.eth.getAccounts((error, accounts) => {
-                    raffle
-                        .deployed()
-                        .then(instance => {
-                            instance.ticketPrice()
-                            .then(price => {
-                                const {
-                                    numberOfTickets,
-                                    numberOfTicketsBought,
-                                } = this.state
+                const RaffleABI = web3.eth.contract(RaffleContract);
+                const raffle = RaffleABI.at('0x9dc353492872014cc9c2985a0824df43b55c8cab');
 
-                                instance.purchaseTickets(
-                                    numberOfTickets,
-                                    {
-                                        value: numberOfTickets * price,
-                                        from: accounts[0],
+                // const contract = require('truffle-contract');
+                // const raffle = contract(RaffleContract);
+                // raffle.setProvider(web3.currentProvider);
+
+                web3.eth
+                .getAccounts((error, accounts) => {
+                    new Promise((resolve, reject) => raffle.ticketPrice(
+                        (error, price) => 
+                        {
+                            if(error) {
+                                reject(error)
+                            }
+                            const {
+                                numberOfTickets,
+                                numberOfTicketsBought,
+                            } = this.state
+
+                            
+                            resolve(new Promise((resolve, reject) => raffle.purchaseTickets(
+                                numberOfTickets,
+                                {
+                                    value: numberOfTickets * price,
+                                    from: accounts[0],
+                                },
+                                (error) => {
+                                    if (error) {
+                                        reject(error)
                                     }
-                                )
-                                .then(() => {
                                     this.setState({
                                         loading: false,
                                         numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
+                                        error: null,
                                     })
                                     console.log(numberOfTicketsBought, numberOfTickets)
+                                    resolve()
+                            }))
+                            .catch(() => {
+                                this.setState({
+                                    error: 'order',
+                                    loading: false,
                                 })
-                                .catch(() => {
-                                    this.setState({
-                                        error: 'order',
-                                        loading: false,
-                                    })
-                                })
-
-                                
-                            })
-                        }).catch(() => this.setState({ error: 'order', loading: false}))
-                }).catch(() => this.setState({ error: 'order', loading: false}))
-        }).catch(() => {
-            this.setState({
-                error: 'web3',
-                loading: false,
-            });
-        });
+                            }))
+                        }
+                    ))
+                })
+        })
     } 
 
-    render() {
+    render () {
         return (
             <div className="">
                 <div className="text-center">
