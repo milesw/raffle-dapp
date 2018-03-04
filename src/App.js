@@ -14,6 +14,8 @@ import './css/open-sans.css';
 import './css/pure-min.css';
 import './App.css';
 
+const address = '0xf58a9079b3d9f63a7135afca82f81b3d0f119897'
+
 const localizeTicket = ticketNumber => `${ticketNumber} ${ticketNumber === 1 ? 'ticket' : 'tickets' }`
 
 
@@ -65,7 +67,15 @@ class App extends Component {
                 // const contract = require('truffle-contract');
                 // const raffle = contract(RaffleContract);
                 const RaffleABI = web3.eth.contract(RaffleContract);
-                const raffleInstance = RaffleABI.at('0x9dc353492872014cc9c2985a0824df43b55c8cab');
+                const raffleInstance = RaffleABI.at(address);
+                web3.version.getNetwork((error, result) => {
+                    if (error || Number(result) !== 4) {
+                        console.log(result)
+                        this.setState({
+                            error: 'web3',
+                        })
+                    }
+                })
                 // raffle.setProvider(web3.currentProvider);
         
                 // Get accounts.
@@ -114,55 +124,72 @@ class App extends Component {
             .then(results => {
                  const web3 = results.web3
 
+                try {
+                    const RaffleABI = web3.eth.contract(RaffleContract);
+                    const raffle = RaffleABI.at(address);
 
-                const RaffleABI = web3.eth.contract(RaffleContract);
-                const raffle = RaffleABI.at('0x9dc353492872014cc9c2985a0824df43b55c8cab');
+                    // const contract = require('truffle-contract');
+                    // const raffle = contract(RaffleContract);
+                    // raffle.setProvider(web3.currentProvider);
 
-                // const contract = require('truffle-contract');
-                // const raffle = contract(RaffleContract);
-                // raffle.setProvider(web3.currentProvider);
-
-                web3.eth
-                .getAccounts((error, accounts) => {
-                    new Promise((resolve, reject) => raffle.ticketPrice(
-                        (error, price) => 
-                        {
-                            if(error) {
-                                reject(error)
-                            }
-                            const {
-                                numberOfTickets,
-                                numberOfTicketsBought,
-                            } = this.state
-
-                            
-                            resolve(new Promise((resolve, reject) => raffle.purchaseTickets(
-                                numberOfTickets,
-                                {
-                                    value: numberOfTickets * price,
-                                    from: accounts[0],
-                                },
-                                (error) => {
-                                    if (error) {
-                                        reject(error)
-                                    }
-                                    this.setState({
-                                        loading: false,
-                                        numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
-                                        error: null,
-                                    })
-                                    console.log(numberOfTicketsBought, numberOfTickets)
-                                    resolve()
-                            }))
-                            .catch(() => {
-                                this.setState({
-                                    error: 'order',
-                                    loading: false,
-                                })
-                            }))
+                    web3.eth
+                    .getAccounts((error, accounts) => {
+                        if (error) {
+                            this.setState({ error: 'web3', loading: false})
                         }
-                    ))
-                })
+
+                        new Promise((resolve, reject) => raffle.ticketPrice(
+                            (error, price) => 
+                            {
+                                if(error) {
+                                    reject(error)
+                                }
+                                const {
+                                    numberOfTickets,
+                                    numberOfTicketsBought,
+                                } = this.state
+
+                                
+                                resolve(new Promise((resolve, reject) => raffle.purchaseTickets(
+                                    numberOfTickets,
+                                    {
+                                        value: numberOfTickets * price,
+                                        from: accounts[0],
+                                    },
+                                    (error) => {
+                                        if (error) {
+                                            reject(error)
+                                        }
+                                        this.setState({
+                                            loading: false,
+                                            numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
+                                            error: null,
+                                        })
+                                        console.log(numberOfTicketsBought, numberOfTickets)
+                                        resolve()
+                                }))
+                                .catch(() => {
+                                    this.setState({
+                                        error: 'order',
+                                        loading: false,
+                                    })
+                                }))
+                            }
+                        )).catch(() => {
+                            this.setState({
+                                error: 'web3',
+                                loading: false,
+                            })
+                        })
+                    })
+                } catch (e) {
+                    this.setState({ error: 'web3', loading: false})
+                }
+        }).catch(() => {
+            this.setState({
+                error: 'web3',
+                loading: false,
+            })
         })
     } 
 
@@ -176,6 +203,14 @@ class App extends Component {
                 <div style={{ marginBottom: 25}}>
                     <GallerySlider />
                 </div>
+                {this.state.error === 'web3' ? <div style={{color: 'red'}}>
+                    <h4>Error! Error!</h4>
+                    <p>
+                        Please use <a href='https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?utm_source=chrome-ntp-icon'>
+                            metamask
+                        </a> and switch to network rinkeby test net now.
+                    </p>
+                </div> : null}
                 <div>
                     <h4>The Sanctum Villas, Chiang Mai, Thailand</h4>
                     <p>
