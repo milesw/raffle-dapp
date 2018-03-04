@@ -2,11 +2,10 @@ pragma solidity 0.4.19;
 
 import "./SafeMath.sol";
 import "./DrawRandomNumber.sol";
-import "./Ownable.sol";
 
 
 // @dev Raffle smart contract - contains all business logic
-contract Raffle is Ownable {
+contract Raffle {
     using SafeMath for uint256;
 
     uint256 public openTime;
