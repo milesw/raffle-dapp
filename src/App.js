@@ -174,16 +174,16 @@ class App extends Component {
                 }}>
                     <div style={{
                         height: '100%',
-                        width: '56%',
+                        width: !this.state.finalized ? `${Math.round(this.state.raised / this.state.goal * 100)}%` : '100%',
                         backgroundColor: 'green'
                     }} />
                 </div>
                 <div className="grid-x">
                     <div className="cell small-6">
-                        <p className='text-left h4'>560.012 Tickets</p>
+                        <p className='text-left h4'>Raised: {this.state.raised} ETH / {Math.round(this.state.raised / this.state.goal * 100)} %</p>
                     </div>
                     <div className="cell small-6">
-                        <p className='text-right h4'>1 Mio Tickets</p>
+                        <p className='text-right h4'>Goal: {this.state.goal} ETH</p>
                     </div>
                 </div>
                 <div className="grid-x">
@@ -214,20 +214,20 @@ class App extends Component {
                 {this.state.numberOfTicketsBought ? <div className="grid-x">
                     <hr className="cell" />
                     <div className="cell">
-                        <p className='text-center h4'>You have bought {localizeTicket(this.state.numberOfTicketsBought)}</p>
+                        <p className='text-center h4'>You have bought {localizeTicket(this.state.numberOfTicketsBought)}.</p>
                     </div>
-                    <div className="cell" >
+                    {this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully ? null : <div className="cell" >
                         <img src={doneImg}  style={{width: '40px'}} className="float-center" />
-                    </div>
+                    </div>}
                     <div className="cell">
-                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsProcessedSuccessfully)} tickets have been successfully submitted.</p>
+                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsProcessedSuccessfully)} have been successfully submitted.</p>
                     </div>
-                    <div className="cell" >
-                        <img src={loadImg}  style={{width: '40px', animation:'spin 4s linear infinite'}} className="float-center" />
-                    </div>
-                    <div className="cell">
-                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully)} are still processing.</p>
-                    </div>
+                    {this.state.loading ? <div className="cell" >
+                        <img src={loadImg}  style={{width: '40px'}} className="float-center" />
+                    </div> : null}
+                    {this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully ? <div className="cell">
+                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully)} processing...</p>
+                    </div>: null}
                     <hr className="cell" />
                 </div> : null}
                 <div className="grid-x align-spaced">
