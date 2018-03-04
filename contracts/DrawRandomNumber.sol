@@ -36,7 +36,7 @@ contract DrawRandomNumber is usingOraclize {
         Raffle(raffleData[_queryId].raffleContractAddress).setWinnerAndFinalize(randomNumber);
     }
 
-    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable returns(bytes32) {
+    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable {
         oraclize_setProof(proofType_Ledger); // sets the Ledger authenticity proof
         uint n = 4; // number of random bytes we want the datasource to return
         uint delay = 0; // number of seconds to wait before the execution takes place
@@ -48,7 +48,5 @@ contract DrawRandomNumber is usingOraclize {
         raffleData[queryId].raffleContractAddress = _raffleContractAddress;
         raffleData[queryId].maxRange = _maxRange;
         raffleData[queryId].isValid = true;
-
-        return queryId;
     }
 }
