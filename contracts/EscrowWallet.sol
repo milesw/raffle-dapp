@@ -1,10 +1,10 @@
 pragma solidity 0.4.19;
 
+
 // a multi-sig wallet based on
 // https://github.com/gnosis/MultiSigWallet/blob/master/contracts/MultiSigWallet.sol
 // - but reduced to what we need
 contract EscrowWallet {
-
     struct Transaction {
         address destination;
         uint value;
@@ -62,17 +62,18 @@ contract EscrowWallet {
 
     modifier validRequirement(uint ownerCount, uint _required) {
         require(ownerCount <= MAX_OWNER_COUNT
-        && _required <= ownerCount
-        && _required != 0
-        && ownerCount != 0);
+                && _required <= ownerCount
+                && _required != 0
+                && ownerCount != 0
+        );
         _;
     }
 
     function EscrowWallet(address[] _owners, uint _required)
-    public
-    validRequirement(_owners.length, _required)
+        public
+        validRequirement(_owners.length, _required)
     {
-        for (uint i=0; i<_owners.length; i++) {
+        for (uint i=0; i < _owners.length; i++) {
             require(!isOwner[_owners[i]] && _owners[i] != 0);
             isOwner[_owners[i]] = true;
         }
@@ -83,39 +84,22 @@ contract EscrowWallet {
     /// @dev Allows to add a new owner. Transaction has to be sent by wallet.
     /// @param owner Address of new owner.
     function addOwner(address owner)
-    public
-    onlyWallet
-    ownerDoesNotExist(owner)
-    notNull(owner)
-    validRequirement(owners.length + 1, required)
+        public
+        onlyWallet
+        ownerDoesNotExist(owner)
+        notNull(owner)
+        validRequirement(owners.length + 1, required)
     {
         isOwner[owner] = true;
         owners.push(owner);
         OwnerAddition(owner);
     }
 
-    /// @dev Sets the transaction.
-    /// @param destination Transaction target address.
-    /// @param value Transaction ether value.
-    /// @param data Transaction data payload.
-    function setTransaction(address destination, uint value, bytes data)
-    internal
-    notNull(destination)
-    {
-        transaction = Transaction({
-            destination: destination,
-            value: value,
-            data: data,
-            executed: false
-            });
-//        Submission();
-    }
-
     /// @dev Allows an owner to confirm the transaction.
     function confirmTransaction()
-    public
-    ownerExists(msg.sender)
-    notConfirmed(msg.sender)
+        public
+        ownerExists(msg.sender)
+        notConfirmed(msg.sender)
     {
         confirmations[msg.sender] = true;
         Confirmation(msg.sender);
@@ -124,10 +108,10 @@ contract EscrowWallet {
 
     /// @dev Allows anyone to execute a confirmed transaction.
     function executeTransaction()
-    public
-    ownerExists(msg.sender)
-    confirmed(msg.sender)
-    notExecuted()
+        public
+        ownerExists(msg.sender)
+        confirmed(msg.sender)
+        notExecuted()
     {
         if (isConfirmed()) {
             transaction.executed = true;
@@ -143,17 +127,33 @@ contract EscrowWallet {
     /// @dev Returns the confirmation status of a transaction.
     /// @return Confirmation status.
     function isConfirmed()
-    public
-    constant
-    returns (bool)
+        public
+        constant
+        returns (bool)
     {
         uint count = 0;
-        for (uint i=0; i<owners.length; i++) {
+        for (uint i=0; i < owners.length; i++) {
             if (confirmations[owners[i]])
                 count += 1;
             if (count == required)
                 return true;
         }
+    }
+
+    /// @dev Sets the transaction.
+    /// @param destination Transaction target address.
+    /// @param value Transaction ether value.
+    /// @param data Transaction data payload.
+    function setTransaction(address destination, uint value, bytes data)
+        internal
+        notNull(destination)
+    {
+        transaction = Transaction({
+            destination: destination,
+            value: value,
+            data: data,
+            executed: false
+        });
     }
 
 }
