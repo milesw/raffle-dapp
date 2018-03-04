@@ -21,79 +21,85 @@ class App extends Component {
         super(props);
 
         this.state = {
-            web3: null,
             numberOfTickets: 1,
             numberOfTicketsBought: 0,
-            numberOfTicketsProcessedSuccessfully: 4,
+            numberOfTicketsProcessedSuccessfully: 0,
             ticketNumberTotal: 1000000,
             ticketNumberBoughtTotal: 560230,
+            error: '',
+            finalized: false,
+            loading: false,
         };
-
-        this.web3 = null
     }
 
-    componentWillMount() {
+    componentDidMount() {
         // Get network provider and web3 instance.
         // See utils/getWeb3 for more info.
+        this.getContractState()
+    }
 
+    componentDidUpdate () {
+        if (
+            this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully 
+            && !this.state.loading
+        ) {
+            console.log('Update', this.state.numberOfTickets, this.state.loading)
+            this.getContractState()
+        }
+    }
+
+    getContractState () {
+        if (this.state.loading) {
+            return;
+        }
+        this.setState({ loading: true})
         getWeb3
             .then(results => {
-                this.web3 = results.web3
-
                 // Instantiate contract once web3 provided.
-                this.instantiateContract(this.web3);
+                const web3 = results.web3
+                const contract = require('truffle-contract');
+                const raffle = contract(RaffleContract);
+                raffle.setProvider(web3.currentProvider);
+        
+                // Get accounts.
+                web3.eth.getAccounts((error, accounts) => {
+                    raffle
+                        .deployed()
+                        .then(instance => {
+                            const raffleInstance = instance;
+                            // Stores a given value, 5 by default.
+                            return Promise.all([
+                                raffleInstance.goal(),
+                                raffleInstance.allTicketHolders(),
+                                raffleInstance.weiRaised(),
+                                raffleInstance.ticketsSold(),
+                                raffleInstance.isFinalized(),
+                            ])
+                        })
+                        .then(result => {
+                            // Update state with the result.
+                            this.setState({
+                                numberOfTicketsProcessedSuccessfully: (result[1] || []).filter(_ => _ === accounts[0]).length,
+                                ticketNumberBoughtTotal: result[3] ? web3.fromWei(result[3].toNumber(), 'ether'): 0,
+                                goal: result[0] ? web3.fromWei(result[0].toNumber(), 'ether'): 0,
+                                raised: result[2] ? web3.fromWei(result[2].toNumber(), 'ether'): 0,
+                                finalized: result[4] || false,
+                                loading: false,
+                            });
+
+                            this.setState({
+                                numberOfTicketsBought: Math.max(this.state.numberOfTicketsBought, this.state.numberOfTicketsProcessedSuccessfully)
+                            })
+                        });
+                });
             })
             .catch(() => {
-                console.log('Error finding web3.');
+                this.setState({ error: 'Error finding web3.', loading: false });
             });
-    }
-
-    instantiateContract (web3) {
-        /*
-         * SMART CONTRACT EXAMPLE
-         *
-         * Normally these functions would be called in the context of a
-         * state management library, but for convenience I've placed them here.
-         */
-
-        const contract = require('truffle-contract');
-        const raffle = contract(RaffleContract);
-        raffle.setProvider(web3.currentProvider);
-
-        // Declaring this for later so we can chain functions on raffle.
-        var raffleInstance;
-
-        // Get accounts.
-        web3.eth.getAccounts((error, accounts) => {
-            raffle
-                .deployed()
-                .then(instance => {
-                    raffleInstance = instance;
-                    // Stores a given value, 5 by default.
-                    return Promise.all([
-                        raffleInstance.goal(),
-                        raffleInstance.allTicketHolders(),
-                        raffleInstance.weiRaised(),
-                        raffleInstance.ticketsSold(),
-                        raffleInstance.isFinalized(),
-                    ])
-                })
-                .then(result => {
-                    console.log(result)
-                    console.log(result[1])
-                    // Update state with the result.
-                    return this.setState({
-                        numberOfTicketsBought: (result[1] || []).filter(_ => _ === accounts[0]).length,
-                        ticketNumberBoughtTotal: result[3] ? web3.fromWei(result[3].toNumber(), 'ether'): 0,
-                        goal: result[0] ? web3.fromWei(result[0].toNumber(), 'ether'): 0,
-                        raised: result[2] ? web3.fromWei(result[2].toNumber(), 'ether'): 0,
-                        finalized: result[4] || false
-                    });
-                });
-        });
-    }
+        }
 
     order () {
+        this.setState({ loading: true})
         getWeb3
             .then(results => {
                  const web3 = results.web3
@@ -102,26 +108,41 @@ class App extends Component {
                  const raffle = contract(RaffleContract);
                 raffle.setProvider(web3.currentProvider);
 
-        // Declaring this for later so we can chain functions on raffle.
-                var raffleInstance;
-
                 web3.eth.getAccounts((error, accounts) => {
                     raffle
                         .deployed()
                         .then(instance => {
                             instance.ticketPrice()
                             .then(price => {
-                                console.log(price)
-                                const { numberOfTickets } = this.state 
-                                instance.purchaseTickets(numberOfTickets, {value: numberOfTickets * price, from: accounts[0]})
+                                const {
+                                    numberOfTickets,
+                                    numberOfTicketsBought,
+                                } = this.state
+
+                                instance.purchaseTickets(
+                                    numberOfTickets,
+                                    {
+                                        value: numberOfTickets * price,
+                                        from: accounts[0],
+                                    }
+                                )
+
+                                this.setState({
+                                    loading: true,
+                                    numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
+                                })
                             })
                         })
                 })
-        })
+        }).catch(() => {
+            this.setState({
+                error: 'Purchase has failed.',
+                loading: false,
+            });
+        });
     } 
 
     render() {
-        console.log(this.state)
         return (
             <div className="">
                 <div className="text-center">
