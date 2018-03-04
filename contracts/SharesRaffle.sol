@@ -78,20 +78,22 @@ contract SharesRaffle {
         uint256 range = entries.length / 2;
         uint256 currentIndex = range;
         while (true) {
+            if (range / 2 != 0) {
+                range = range / 2;
+            }
             if (currentIndex == 0) {
                 break;
             } else if (entries[currentIndex].cap < winningNumber) {
                 // Jump right
-                currentIndex += range / 2;
+                currentIndex += range;
             } else {
                 if (entries[currentIndex - 1].cap < winningNumber) {
                     break;
                 } else {
                     // Jump left
-                    currentIndex -= range / 2;
+                    currentIndex -= range;
                 }
             }
-            range /= 2;
         }
         return entries[currentIndex].buyer;
     }
