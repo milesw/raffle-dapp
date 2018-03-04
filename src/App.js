@@ -76,6 +76,7 @@ class App extends Component {
                         new Promise((resolve, reject) => raffleInstance.weiRaised((error, data) => error ? reject(error): resolve(data))),
                         new Promise((resolve, reject) => raffleInstance.ticketsSold((error, data) => error ? reject(error): resolve(data))),
                         new Promise((resolve, reject) => raffleInstance.isFinalized((error, data) => error ? reject(error): resolve(data))),
+                        new Promise((resolve, reject) => raffleInstance.raffleWinner((error, data) => error ? reject(error): resolve(data))),
                     ])
                         .then(result => {
                             console.log('get data...')
@@ -86,6 +87,7 @@ class App extends Component {
                                 goal: result[0] ? web3.fromWei(result[0].toNumber(), 'ether'): 0,
                                 raised: result[2] ? web3.fromWei(result[2].toNumber(), 'ether'): 0,
                                 finalized: result[4] || false,
+                                success: result[5] ? result[5] === accounts[0] : null,
                                 loading: false,
                             }, () => {
                                 this.setState({
@@ -199,6 +201,11 @@ class App extends Component {
                         <p className='text-right h4'>Goal: {this.state.goal} ETH</p>
                     </div>
                 </div>
+                {this.state.finalized ? <div className="grid-x">
+                    <div className="cell">
+                        {this.state.success ? 'You won' : 'Sorry, try again next time.'}
+                    </div>
+                </div>: null}
                 <div className="grid-x">
                     {this.state.error === 'order' ? null : <div className="cell small-3 medium-1">
                         <button
