@@ -57,6 +57,17 @@ contract Raffle is Ownable {
         _;
     }
 
+    modifier onlyDrawRandomNumberContract() {
+        require(msg.sender == address(drawRandomNumber));
+        _;
+    }
+
+    modifier isElegibleToBeFinalized() {
+        require(weiRaised() >= goal || now > closeTime);
+        require(!isFinalized && raffleWinner == address(0));
+        _;
+    }
+
     function purchaseTickets(uint256 numberOfTickets)
         public
         withinRafflePeriod
@@ -71,30 +82,10 @@ contract Raffle is Ownable {
 
         //forward funds to escrow
         escrowWallet.transfer(msg.value);
-
-        if (weiRaised() >= goal) {
-          finalize();
-        }
     }
 
     function weiRaised() public view returns(uint256) {
         return ticketHolders.length.mul(ticketPrice);
-    }
-
-    function requestRandomNumberByTime() public onlyOwner {
-        require(!isFinalized && now > closeTime);
-
-        if (ticketsSold() > 0) {
-            requestRandomNumber();
-        }
-    }
-
-    function requestRandomNumberByGoalReached() public onlyOwner {
-        require(!isFinalized && weiRaised() >= goal);
-
-        if (ticketsSold() > 0) {
-            requestRandomNumber();
-        }
     }
 
     function ticketsSold() public view returns(uint256) {
@@ -105,17 +96,20 @@ contract Raffle is Ownable {
         return ticketHolders;
     }
 
-    function findWinnerAndFinalize() public onlyOwner {
-        uint256 randomNumber = drawRandomNumber.randomNumbers(oraclizeQueryId);
-        require(!isFinalized && randomNumber != 0);
+    function setWinnerAndFinalize(uint256 randomNumber)
+        public
+        onlyDrawRandomNumberContract
+    {
+        require(raffleWinner == address(0));
 
         // random number returns between 1 and ticketsSold but the array is from 0 to ticketsSold - 1
         raffleWinner = ticketHolders[randomNumber - 1];
         isFinalized = true;
     }
 
-    function requestRandomNumber() internal {
-        oraclizeQueryId = drawRandomNumber.generateRandomNum(ticketsSold());
+    function requestRandomNumber() public isElegibleToBeFinalized {
+        if (ticketsSold() > 0)
+            oraclizeQueryId = drawRandomNumber.generateRandomNum(ticketsSold(), this);
     }
 
 }
