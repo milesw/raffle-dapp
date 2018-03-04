@@ -1,4 +1,6 @@
 const Raffle = artifacts.require('./Raffle.sol');
+const DrawRandomNumberMock = artifacts.require('./DrawRandomNumberMock.sol');
+
 const { should, ensuresException } = require('./helpers/utils');
 const expect = require('chai').expect;
 const { latestTime, duration, increaseTimeTo } = require('./helpers/timer');
@@ -9,14 +11,24 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
     const ticketPrice = new BigNumber(100);
     const goal = new BigNumber(100e18);
 
-    let raffle;
+    let raffle, drawRandomNumberContract;
     let openTime, closeTime;
 
     const newRaffle = goal => {
         openTime = latestTime() + duration.seconds(20); // crowdsale starts in 20 seconds
         closeTime = openTime + duration.days(60);
 
-        return Raffle.new(openTime, closeTime, ticketPrice, goal, escrowWallet);
+        return DrawRandomNumberMock.new().then(drawRandomNumberMockInstance => {
+            drawRandomNumberContract = drawRandomNumberMockInstance;
+            return Raffle.new(
+                openTime,
+                closeTime,
+                ticketPrice,
+                goal,
+                escrowWallet,
+                drawRandomNumberMockInstance.address
+            );
+        });
     };
 
     beforeEach('setup contract', async () => {
@@ -47,6 +59,11 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
         it('has a escrowWallet', async () => {
             const raffleEscrowWallet = await raffle.escrowWallet();
             raffleEscrowWallet.should.be.bignumber.equal(escrowWallet);
+        });
+
+        it('has reference to the drawRandomNumber contract', async () => {
+            const drawRandomNumber = await raffle.drawRandomNumber();
+            drawRandomNumber.should.be.equal(drawRandomNumberContract.address);
         });
     });
 
@@ -165,23 +182,26 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
     });
 
     describe('raffle finalization', () => {
-        it('cannot call it when it is already finalized', async () => {
+        it('has query id when requesting random number', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.purchaseTickets(1, {
+                value: ticketPrice,
+                from: buyer1
+            });
+
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeRaffleByTime();
 
-            try {
-                await raffle.finalizeRaffleByTime();
-                assert.fail();
-            } catch (e) {
-                ensuresException(e);
-            }
+            await raffle.requestRandomNumber();
 
-            try {
-                await raffle.finalizeRaffleByGoalReached({ from: owner });
-                assert.fail();
-            } catch (e) {
-                ensuresException(e);
-            }
+            const queryId = await raffle.oraclizeQueryId();
+            expect(queryId).to.exist;
+
+            const isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.true;
+
+            const raffleWinner = await raffle.raffleWinner();
+            expect(raffleWinner).to.exist;
         });
 
         it('is NOT called before reaching the goal or before the end time', async () => {
@@ -190,23 +210,19 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
             await raffle.purchaseTickets(1, { value: ticketPrice });
 
             try {
-                await raffle.finalizeRaffleByTime();
+                await raffle.requestRandomNumber();
                 assert.fail();
             } catch (e) {
                 ensuresException(e);
             }
 
-            try {
-                await raffle.finalizeRaffleByGoalReached({ from: owner });
-                assert.fail();
-            } catch (e) {
-                ensuresException(e);
-            }
+            const isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.false;
         });
 
         it('there is no winner when no one has participated in the raffle', async () => {
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeRaffleByTime();
+            await raffle.requestRandomNumber();
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(
@@ -214,10 +230,10 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
             );
 
             const isFinalized = await raffle.isFinalized();
-            isFinalized.should.be.true;
+            isFinalized.should.be.false;
         });
 
-        it('only the owner is able to call finalize by goal', async () => {
+        it('triggers random number generation event once goal is reached', async () => {
             raffle = await newRaffle(new BigNumber(20));
 
             await increaseTimeTo(latestTime() + duration.seconds(50));
@@ -226,20 +242,14 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
                 from: buyer2
             });
 
-            try {
-                await raffle.finalizeRaffleByGoalReached({ from: buyer1 });
-                assert.fail();
-            } catch (e) {
-                ensuresException(e);
-            }
+            await raffle.requestRandomNumber({ from: buyer1 });
 
             let isFinalized = await raffle.isFinalized();
-            isFinalized.should.be.false;
-
-            await raffle.finalizeRaffleByGoalReached({ from: owner });
-
-            isFinalized = await raffle.isFinalized();
             isFinalized.should.be.true;
+
+            const raffleWinner = await raffle.raffleWinner();
+            expect(raffleWinner).to.exist;
+            raffleWinner.should.be.equal(buyer2);
         });
 
         it('finalizes and has a winner', async () => {
@@ -260,7 +270,7 @@ contract('Raffle', function([owner, buyer1, buyer2, escrowWallet]) {
 
             await increaseTimeTo(latestTime() + duration.days(65));
 
-            await raffle.finalizeRaffleByTime();
+            await raffle.requestRandomNumber();
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(buyer2);
