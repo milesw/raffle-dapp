@@ -18,7 +18,6 @@ contract Raffle is Ownable {
     address[] public ticketHolders;
     bool public isFinalized;
     address public raffleWinner;
-    bytes32 public oraclizeQueryId;
 
     DrawRandomNumber public drawRandomNumber;
 
@@ -102,14 +101,14 @@ contract Raffle is Ownable {
     {
         require(raffleWinner == address(0));
 
-        // random number returns between 1 and ticketsSold but the array is from 0 to ticketsSold - 1
-        raffleWinner = ticketHolders[randomNumber - 1];
+        // random number returns between 0 and ticketsSold - 1
+        raffleWinner = ticketHolders[randomNumber];
         isFinalized = true;
     }
 
     function requestRandomNumber() public isElegibleToBeFinalized {
         if (ticketsSold() > 0)
-            oraclizeQueryId = drawRandomNumber.generateRandomNum(ticketsSold(), this);
+            drawRandomNumber.generateRandomNum(ticketsSold(), this);
     }
 
 }

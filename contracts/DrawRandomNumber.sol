@@ -25,9 +25,8 @@ contract DrawRandomNumber is usingOraclize {
     {
         require(msg.sender == oraclize_cbAddress() && raffleData[_queryId].isValid);
 
-        // this is an efficient way to get the uint out in the [1, maxRange] range
+        // this is an efficient way to get the uint out in the [0, maxRange) range
         uint256 randomNumber = uint(keccak256(_result)) % raffleData[_queryId].maxRange;
-        randomNumber += 1;
 
         NewRandomNumberBytes(bytes(_result)); // this is the resulting random number (bytes)
         NewRandomNumberUint(randomNumber); // this is the resulting random number (uint)
