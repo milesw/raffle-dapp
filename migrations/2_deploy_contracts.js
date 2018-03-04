@@ -1,4 +1,5 @@
 const Raffle = artifacts.require('./Raffle.sol');
+const DrawRandomNumberMock = artifacts.require('./DrawRandomNumberMock.sol');
 
 const BigNumber = web3.BigNumber;
 const dayInSecs = 86400;
@@ -9,12 +10,19 @@ const ticketPrice = new BigNumber(100e15);
 const goal = new BigNumber(100e18);
 
 module.exports = function(deployer, network, [_, escrowWallet]) {
-    deployer.deploy(
-        Raffle,
-        openTime,
-        closeTime,
-        ticketPrice,
-        goal,
-        escrowWallet
-    );
+    return deployer
+        .then(() => {
+            return deployer.deploy(DrawRandomNumberMock);
+        })
+        .then(() => {
+            return deployer.deploy(
+                Raffle,
+                openTime,
+                closeTime,
+                ticketPrice,
+                goal,
+                escrowWallet,
+                DrawRandomNumberMock.address
+            );
+        });
 };
