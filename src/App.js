@@ -617,7 +617,7 @@ class App extends Component {
                     </div>
                     <div className="cell small-4">
                         <p className="text-center h4">
-                            <div>Send ETH to #DappRaffle</div>
+                            Send ETH to #DappRaffle
                         </p>
                     </div>
                     <div className="cell small-4">
@@ -629,7 +629,7 @@ class App extends Component {
                     </div>
                     <div className="cell small-4">
                         <p className="text-center h4">
-                            <div>Winner gets the villa</div>
+                            Winner gets the villa
                         </p>
                     </div>
                 </div>
