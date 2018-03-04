@@ -39,21 +39,21 @@ class App extends Component {
     }
 
     componentDidUpdate () {
-        console.log('updating?')
+        // console.log('updating?')
         if (
             this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully
         ) {
-            console.log('updating...')
+            // console.log('updating...')
             this.getContractState()
         }
     }
 
     getContractState () {
         if (this.state.loading === 'update') {
-            console.log('already updating')
+            // console.log('already updating')
             return;
         }
-        console.log('update started')
+        // console.log('update started')
         this.setState({ loading: 'update'})
         getWeb3
             .then(results => {
@@ -103,12 +103,12 @@ class App extends Component {
                 });
             })
             .catch(() => {
-                this.setState({ error: 'Error finding web3.', loading: false });
+                this.setState({ error: 'web3', loading: false });
             });
         }
 
     order () {
-        this.setState({ loading: true})
+        this.setState({ loading: true, error: null})
         getWeb3
             .then(results => {
                  const web3 = results.web3
@@ -135,17 +135,27 @@ class App extends Component {
                                         from: accounts[0],
                                     }
                                 )
-
-                                this.setState({
-                                    loading: true,
-                                    numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
+                                .then(() => {
+                                    this.setState({
+                                        loading: false,
+                                        numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
+                                    })
+                                    console.log(numberOfTicketsBought, numberOfTickets)
                                 })
+                                .catch(() => {
+                                    this.setState({
+                                        error: 'order',
+                                        loading: false,
+                                    })
+                                })
+
+                                
                             })
-                        })
-                })
+                        }).catch(() => this.setState({ error: 'order', loading: false}))
+                }).catch(() => this.setState({ error: 'order', loading: false}))
         }).catch(() => {
             this.setState({
-                error: 'Purchase has failed.',
+                error: 'web3',
                 loading: false,
             });
         });
@@ -187,22 +197,23 @@ class App extends Component {
                     </div>
                 </div>
                 <div className="grid-x">
-                    <div className="cell small-3 medium-1">
+                    {this.state.error === 'order' ? null : <div className="cell small-3 medium-1">
                         <button
                             className="button large expanded alert mb0" 
                             disabled={this.state.numberOfTickets < 2}
                             onClick={() => this.setState({numberOfTickets: this.state.numberOfTickets-1})}
                         >-</button>
-                    </div>
-                    <div className="cell small-6 medium-2">
-                        <input type="number" id="right-label" value={this.state.numberOfTickets} className='fh text-center' onChange={e => this.setState({ numberOfTickets: e.target.value})} />
-                    </div>
-                    <div className="cell small-3 medium-1">
+                    </div>}
+                    {this.state.error === 'order' ? null :<div className="cell small-6 medium-2">
+                        <input type="number" id="right-label" value={this.state.numberOfTickets} className='fh text-center' onChange={e => this.setState({ numberOfTickets: Number(e.target.value)})} />
+                    </div>}
+                    {this.state.error === 'order' ? null : <div className="cell small-3 medium-1">
                         <button
                             className="button large expanded edit mb0"
                             onClick={() => this.setState({numberOfTickets: this.state.numberOfTickets+1})}
                         >+</button>
-                    </div>
+                    </div>}
+                    {this.state.error === 'order' ? <div className="cell small-12 medium-4">Order aborted. Try again.</div>: null}
                     <div className="cell small-12 medium-8">
                         <button
                             className="button large expanded warning mb0" 
