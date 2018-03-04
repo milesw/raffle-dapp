@@ -13,6 +13,7 @@ contract EscrowWallet {
     }
 
     event Confirmation(address indexed sender);
+    event Deposit(address indexed sender, uint value);
     event Execution();
     event ExecutionFailure();
     event OwnerAddition(address indexed owner);
@@ -25,7 +26,12 @@ contract EscrowWallet {
     mapping (address => bool) public confirmations;
     uint public required;
 
-    modifier confirmed(address owner) {
+    modifier enoughBalance(uint value) {
+        require(value <= this.balance);
+        _;
+    }
+
+    modifier confirmedBy(address owner) {
         require(confirmations[owner]);
         _;
     }
@@ -69,6 +75,15 @@ contract EscrowWallet {
         _;
     }
 
+    /// @dev Fallback function allows to deposit ether.
+    function()
+    public
+    payable
+    {
+        if (msg.value > 0)
+            Deposit(msg.sender, msg.value);
+    }
+
     function EscrowWallet(address[] _owners, uint _required)
         public
         validRequirement(_owners.length, _required)
@@ -110,10 +125,11 @@ contract EscrowWallet {
     function executeTransaction()
         public
         ownerExists(msg.sender)
-        confirmed(msg.sender)
+        confirmedBy(msg.sender)
         notExecuted()
+        enoughBalance(transaction.value)
     {
-        if (isConfirmed()) {
+        if (isConfirmedByRequired()) {
             transaction.executed = true;
             if (transaction.destination.call.value(transaction.value)(transaction.data))
                 Execution();
@@ -126,7 +142,7 @@ contract EscrowWallet {
 
     /// @dev Returns the confirmation status of a transaction.
     /// @return Confirmation status.
-    function isConfirmed()
+    function isConfirmedByRequired()
         public
         constant
         returns (bool)
