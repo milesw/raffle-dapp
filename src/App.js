@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import RaffleContract from '../build/contracts/Raffle.json';
 import getWeb3 from './utils/getWeb3';
+import GallerySlider from './GallerySlider.js';
 
 import etherImg from './ether.jpg'
 import scanImg from './etherscan.jpg'
@@ -128,7 +129,7 @@ class App extends Component {
                     <h3>Join Raffle powered by Ethereum </h3>
                 </div>
                 <div>
-                    <img src='http://via.placeholder.com/1000x600' alt='' />
+                    <GallerySlider/>
                 </div>
                 <div>
                     <h4>The Sanctum Villas, Chiang Mai, Thailand</h4>
