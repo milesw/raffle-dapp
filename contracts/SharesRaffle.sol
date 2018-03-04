@@ -101,7 +101,7 @@ contract SharesRaffle {
         finalize();
     }
 
-    function finalizeByGoalReached() public onlyOwner {
+    function finalizeByGoalReached() public {
         require(!isFinalized && totalWei >= goal);
         finalize();
     }
