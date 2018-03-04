@@ -39,20 +39,22 @@ class App extends Component {
     }
 
     componentDidUpdate () {
+        console.log('updating?')
         if (
-            this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully 
-            && !this.state.loading
+            this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully
         ) {
-            console.log('Update', this.state.numberOfTickets, this.state.loading)
+            console.log('updating...')
             this.getContractState()
         }
     }
 
     getContractState () {
-        if (this.state.loading) {
+        if (this.state.loading === 'update') {
+            console.log('already updating')
             return;
         }
-        this.setState({ loading: true})
+        console.log('update started')
+        this.setState({ loading: 'update'})
         getWeb3
             .then(results => {
                 // Instantiate contract once web3 provided.
@@ -77,6 +79,7 @@ class App extends Component {
                             ])
                         })
                         .then(result => {
+                            console.log('get data...')
                             // Update state with the result.
                             this.setState({
                                 numberOfTicketsProcessedSuccessfully: (result[1] || []).filter(_ => _ === accounts[0]).length,
@@ -85,10 +88,16 @@ class App extends Component {
                                 raised: result[2] ? web3.fromWei(result[2].toNumber(), 'ether'): 0,
                                 finalized: result[4] || false,
                                 loading: false,
-                            });
-
-                            this.setState({
-                                numberOfTicketsBought: Math.max(this.state.numberOfTicketsBought, this.state.numberOfTicketsProcessedSuccessfully)
+                            }, () => {
+                                this.setState({
+                                    numberOfTicketsBought: Math.max(this.state.numberOfTicketsBought, this.state.numberOfTicketsProcessedSuccessfully)
+                                }, () => {
+                                    if (
+                                        this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully
+                                    ) {
+                                        this.getContractState()
+                                    }
+                                })
                             })
                         });
                 });
@@ -149,8 +158,8 @@ class App extends Component {
                     <h2>#DappRaffle</h2>
                     <h3>Join Raffle powered by Ethereum </h3>
                 </div>
-                <div>
-                    <GallerySlider/>
+                <div style={{ marginBottom: 25}}>
+                    <GallerySlider />
                 </div>
                 <div>
                     <h4>The Sanctum Villas, Chiang Mai, Thailand</h4>
@@ -165,16 +174,16 @@ class App extends Component {
                 }}>
                     <div style={{
                         height: '100%',
-                        width: '56%',
+                        width: !this.state.finalized ? `${Math.round(this.state.raised / this.state.goal * 100)}%` : '100%',
                         backgroundColor: 'green'
                     }} />
                 </div>
                 <div className="grid-x">
                     <div className="cell small-6">
-                        <p className='text-left h4'>560.012 Tickets</p>
+                        <p className='text-left h4'>Raised: {this.state.raised} ETH / {Math.round(this.state.raised / this.state.goal * 100)} %</p>
                     </div>
                     <div className="cell small-6">
-                        <p className='text-right h4'>1 Mio Tickets</p>
+                        <p className='text-right h4'>Goal: {this.state.goal} ETH</p>
                     </div>
                 </div>
                 <div className="grid-x">
@@ -195,26 +204,30 @@ class App extends Component {
                         >+</button>
                     </div>
                     <div className="cell small-12 medium-8">
-                        <button className="button large expanded warning mb0" onClick={() => this.order()}>Buy {localizeTicket(this.state.numberOfTickets)}</button>
+                        <button
+                            className="button large expanded warning mb0" 
+                            onClick={() => this.order()}
+                            disabled={this.state.finalized}
+                        >Buy {localizeTicket(this.state.numberOfTickets)}</button>
                     </div>
                 </div>
                 {this.state.numberOfTicketsBought ? <div className="grid-x">
                     <hr className="cell" />
                     <div className="cell">
-                        <p className='text-center h4'>You have bought {localizeTicket(this.state.numberOfTicketsBought)}</p>
+                        <p className='text-center h4'>You have bought {localizeTicket(this.state.numberOfTicketsBought)}.</p>
                     </div>
-                    <div className="cell" >
+                    {this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully ? null : <div className="cell" >
                         <img src={doneImg}  style={{width: '40px'}} className="float-center" />
-                    </div>
+                    </div>}
                     <div className="cell">
-                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsProcessedSuccessfully)} tickets have been successfully submitted.</p>
+                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsProcessedSuccessfully)} have been successfully submitted.</p>
                     </div>
-                    <div className="cell" >
+                    {this.state.loading ? <div className="cell" >
                         <img src={loadImg}  style={{width: '40px'}} className="float-center" />
-                    </div>
-                    <div className="cell">
-                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully)} are still processing.</p>
-                    </div>
+                    </div> : null}
+                    {this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully ? <div className="cell">
+                        <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully)} processing...</p>
+                    </div>: null}
                     <hr className="cell" />
                 </div> : null}
                 <div className="grid-x align-spaced">
