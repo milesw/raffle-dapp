@@ -1,11 +1,9 @@
 pragma solidity 0.4.19;
 
 import "./SafeMath.sol";
-import "./Ownable.sol";
-
 
 // @dev Raffle smart contract - contains all business logic
-contract SharesRaffle is Ownable {
+contract SharesRaffle {
     using SafeMath for uint256;
 
     uint256 public openTime;
@@ -103,7 +101,7 @@ contract SharesRaffle is Ownable {
         finalize();
     }
 
-    function finalizeByGoalReached() public onlyOwner {
+    function finalizeByGoalReached() public {
         require(!isFinalized && totalWei >= goal);
         finalize();
     }
