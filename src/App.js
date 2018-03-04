@@ -347,7 +347,7 @@ class App extends Component {
                         }
 
                         new Promise((resolve, reject) => raffle.ticketPrice(
-                            (error, price) => 
+                            (error, price) =>
                             {
                                 if(error) {
                                     reject(error)
@@ -357,7 +357,7 @@ class App extends Component {
                                     numberOfTicketsBought,
                                 } = this.state
 
-                                
+
                                 resolve(new Promise((resolve, reject) => raffle.purchaseTickets(
                                     numberOfTickets,
                                     {
@@ -403,10 +403,10 @@ class App extends Component {
 
     render() {
         return (
-            <div className="">
-                <div className="text-center">
-                    <h2>#DappRaffle</h2>
-                    <h3>Join Raffle powered by Ethereum </h3>
+            <div className="home">
+                <div className="text-center" style={{ marginBottom: 45 }}>
+                    <h2>DappRaffle</h2>
+                    <h7>Powered by Ethereum</h7>
                 </div>
                 <div style={{ marginBottom: 25 }}>
                     <GallerySlider />
@@ -419,7 +419,7 @@ class App extends Component {
                         </a> and switch to network rinkeby test net now.
                     </p>
                 </div> : null}
-                <div>
+                <div style={{ marginTop: 50, marginBottom: 50 }}>
                     <h4>The Sanctum Villas, Chiang Mai, Thailand</h4>
                     <p>
                         A Sanctum villa offers the ideal blend of comfort,
@@ -590,9 +590,9 @@ class App extends Component {
                         <hr className="cell" />
                     </div>
                 ) : null}
-                <div className="grid-x align-spaced">
+                <div className="grid-x align-spaced" style={{ marginTop: 45, marginBottom: 45 }}>
                     <div className="cell">
-                        <p className="text-center h4">How it works?</p>
+                        <p className="text-center h4">How it works:</p>
                     </div>
                     <div className="cell small-4">
                         <img

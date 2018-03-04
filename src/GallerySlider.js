@@ -20,15 +20,15 @@ class GallerySlider extends React.Component {
       slidesToShow: 1,
       slidesToScroll: 1
     };
-    const height = window.innerWidth < 600 ? 300 : 600;
+    const height = window.innerWidth * 6 / 16
     return (
       <Slider {...settings}>
-        <img src={galleryImage1} style={{ width: '100%', height }}/>
-        <img src={galleryImage2} style={{ width: '100%', height }}/>
-        <img src={galleryImage3} style={{ width: '100%', height }}/>
-        <img src={galleryImage4} style={{ width: '100%', height }}/>
-        <img src={galleryImage5} style={{ width: '100%', height }}/>
-        <img src={galleryImage6} style={{ width: '100%', height }}/>
+        <div className='slide-container' style={{ backgroundImage: `url(${galleryImage1})`, height }} />
+        <div className='slide-container' style={{ backgroundImage: `url(${galleryImage2})`, height }} />
+        <div className='slide-container' style={{ backgroundImage: `url(${galleryImage3})`, height }} />
+        <div className='slide-container' style={{ backgroundImage: `url(${galleryImage4})`, height }} />
+        <div className='slide-container' style={{ backgroundImage: `url(${galleryImage5})`, height }} />
+        <div className='slide-container' style={{ backgroundImage: `url(${galleryImage6})`, height }} />
       </Slider>
     );
   }

@@ -5,6 +5,18 @@ body,
   font-family: 'Open Sans', sans-serif;
 }
 
+.home {
+    padding: 0 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.slide-container {
+    background-size: cover;
+    background-position: center center;
+    width: 100%;
+}
+
 .mb0 {
   margin-bottom: 0;
 }
