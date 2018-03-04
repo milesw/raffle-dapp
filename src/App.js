@@ -39,20 +39,22 @@ class App extends Component {
     }
 
     componentDidUpdate () {
+        console.log('updating?')
         if (
-            this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully 
-            && !this.state.loading
+            this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully
         ) {
-            console.log('Update', this.state.numberOfTickets, this.state.loading)
+            console.log('updating...')
             this.getContractState()
         }
     }
 
     getContractState () {
-        if (this.state.loading) {
+        if (this.state.loading === 'update') {
+            console.log('already updating')
             return;
         }
-        this.setState({ loading: true})
+        console.log('update started')
+        this.setState({ loading: 'update'})
         getWeb3
             .then(results => {
                 // Instantiate contract once web3 provided.
@@ -77,6 +79,7 @@ class App extends Component {
                             ])
                         })
                         .then(result => {
+                            console.log('get data...')
                             // Update state with the result.
                             this.setState({
                                 numberOfTicketsProcessedSuccessfully: (result[1] || []).filter(_ => _ === accounts[0]).length,
@@ -85,10 +88,16 @@ class App extends Component {
                                 raised: result[2] ? web3.fromWei(result[2].toNumber(), 'ether'): 0,
                                 finalized: result[4] || false,
                                 loading: false,
-                            });
-
-                            this.setState({
-                                numberOfTicketsBought: Math.max(this.state.numberOfTicketsBought, this.state.numberOfTicketsProcessedSuccessfully)
+                            }, () => {
+                                this.setState({
+                                    numberOfTicketsBought: Math.max(this.state.numberOfTicketsBought, this.state.numberOfTicketsProcessedSuccessfully)
+                                }, () => {
+                                    if (
+                                        this.state.numberOfTicketsBought > this.state.numberOfTicketsProcessedSuccessfully
+                                    ) {
+                                        this.getContractState()
+                                    }
+                                })
                             })
                         });
                 });
@@ -149,8 +158,8 @@ class App extends Component {
                     <h2>#DappRaffle</h2>
                     <h3>Join Raffle powered by Ethereum </h3>
                 </div>
-                <div>
-                    <GallerySlider/>
+                <div style={{ marginBottom: 25}}>
+                    <GallerySlider />
                 </div>
                 <div>
                     <h4>The Sanctum Villas, Chiang Mai, Thailand</h4>
@@ -195,7 +204,11 @@ class App extends Component {
                         >+</button>
                     </div>
                     <div className="cell small-12 medium-8">
-                        <button className="button large expanded warning mb0" onClick={() => this.order()}>Buy {localizeTicket(this.state.numberOfTickets)}</button>
+                        <button
+                            className="button large expanded warning mb0" 
+                            onClick={() => this.order()}
+                            disabled={this.state.finalized}
+                        >Buy {localizeTicket(this.state.numberOfTickets)}</button>
                     </div>
                 </div>
                 {this.state.numberOfTicketsBought ? <div className="grid-x">
@@ -210,7 +223,7 @@ class App extends Component {
                         <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsProcessedSuccessfully)} tickets have been successfully submitted.</p>
                     </div>
                     <div className="cell" >
-                        <img src={loadImg}  style={{width: '40px'}} className="float-center" />
+                        <img src={loadImg}  style={{width: '40px', animation:'spin 4s linear infinite'}} className="float-center" />
                     </div>
                     <div className="cell">
                         <p className='text-center h4'>{localizeTicket(this.state.numberOfTicketsBought - this.state.numberOfTicketsProcessedSuccessfully)} are still processing.</p>
