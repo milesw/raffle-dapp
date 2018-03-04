@@ -466,9 +466,9 @@ class App extends Component {
                 {this.state.finalized ? (
                     <div className="grid-x">
                         <div className="cell">
-                            {this.state.success
+                            <p>{this.state.success
                                 ? 'You won'
-                                : 'Sorry, try again next time.'}
+                                : 'Sorry, try again next time.'}</p>
                         </div>
                     </div>
                 ) : null}
