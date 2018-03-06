@@ -14,9 +14,10 @@ import './css/open-sans.css';
 import './css/pure-min.css';
 import './App.css';
 
-const address = '0x7C51030DB238D61848A0d9112c236d7C8ca98b09'
+const contractAddress = '0x9694a1a5132397Df30EC95502D6fcc3d00Ab3F2E';
 
-const localizeTicket = ticketNumber => `${ticketNumber} ${ticketNumber === 1 ? 'ticket' : 'tickets' }`
+const localizeTicket = ticketNumber =>
+    `${ticketNumber} ${ticketNumber === 1 ? 'ticket' : 'tickets'}`;
 
 const RaffleContract = [
     {
@@ -216,15 +217,15 @@ class App extends Component {
                 // const contract = require('truffle-contract');
                 // const raffle = contract(RaffleContract);
                 const RaffleABI = web3.eth.contract(RaffleContract);
-                const raffleInstance = RaffleABI.at(address);
+                const raffleInstance = RaffleABI.at(contractAddress);
                 web3.version.getNetwork((error, result) => {
                     if (error || Number(result) !== 4) {
-                        console.log(result)
+                        console.log(result);
                         this.setState({
-                            error: 'web3',
-                        })
+                            error: 'web3'
+                        });
                     }
-                })
+                });
                 // raffle.setProvider(web3.currentProvider);
 
                 // Get accounts.
@@ -329,76 +330,84 @@ class App extends Component {
 
     order() {
         this.setState({ loading: true, error: null });
-        getWeb3.then(results => {
-                const web3 = results.web3
+        getWeb3
+            .then(results => {
+                const web3 = results.web3;
 
                 try {
                     const RaffleABI = web3.eth.contract(RaffleContract);
-                    const raffle = RaffleABI.at(address);
+                    const raffle = RaffleABI.at(contractAddress);
 
                     // const contract = require('truffle-contract');
                     // const raffle = contract(RaffleContract);
                     // raffle.setProvider(web3.currentProvider);
 
-                    web3.eth
-                    .getAccounts((error, accounts) => {
+                    web3.eth.getAccounts((error, accounts) => {
                         if (error) {
-                            this.setState({ error: 'web3', loading: false})
+                            this.setState({ error: 'web3', loading: false });
                         }
 
-                        new Promise((resolve, reject) => raffle.ticketPrice(
-                            (error, price) =>
-                            {
-                                if(error) {
-                                    reject(error)
+                        new Promise((resolve, reject) =>
+                            raffle.ticketPrice((error, price) => {
+                                if (error) {
+                                    reject(error);
                                 }
                                 const {
                                     numberOfTickets,
-                                    numberOfTicketsBought,
-                                } = this.state
+                                    numberOfTicketsBought
+                                } = this.state;
 
-
-                                resolve(new Promise((resolve, reject) => raffle.purchaseTickets(
-                                    numberOfTickets,
-                                    {
-                                        value: numberOfTickets * price,
-                                        from: accounts[0],
-                                    },
-                                    (error) => {
-                                        if (error) {
-                                            reject(error)
-                                        }
+                                resolve(
+                                    new Promise((resolve, reject) =>
+                                        raffle.purchaseTickets(
+                                            numberOfTickets,
+                                            {
+                                                value: numberOfTickets * price,
+                                                from: accounts[0]
+                                            },
+                                            error => {
+                                                if (error) {
+                                                    reject(error);
+                                                }
+                                                this.setState({
+                                                    loading: false,
+                                                    numberOfTicketsBought:
+                                                        numberOfTicketsBought +
+                                                        numberOfTickets,
+                                                    error: null
+                                                });
+                                                console.log(
+                                                    numberOfTicketsBought,
+                                                    numberOfTickets
+                                                );
+                                                resolve();
+                                            }
+                                        )
+                                    ).catch(() => {
                                         this.setState({
-                                            loading: false,
-                                            numberOfTicketsBought: numberOfTicketsBought + numberOfTickets,
-                                            error: null,
-                                        })
-                                        console.log(numberOfTicketsBought, numberOfTickets)
-                                        resolve()
-                                }))
-                                .catch(() => {
-                                    this.setState({
-                                        error: 'order',
-                                        loading: false,
+                                            error: 'order',
+                                            loading: false
+                                        });
                                     })
-                                }))
-                            }
-                        )).catch(() => {
+                                );
+                            })
+                        ).catch(() => {
                             this.setState({
                                 error: 'web3',
-                                loading: false,
-                            })
-                        })
-                    })
+                                loading: false
+                            });
+                        });
+                    });
                 } catch (e) {
-                    this.setState({ error: 'web3', loading: false})
+                    this.setState({ error: 'web3', loading: false });
                 }
-        }).catch(() => {
-            this.setState({
-                error: 'web3',
-                loading: false,
             })
-        })
+            .catch(() => {
+                this.setState({
+                    error: 'web3',
+                    loading: false
+                });
+            });
     }
 
     render() {
@@ -411,14 +420,26 @@ class App extends Component {
                 <div style={{ marginBottom: 25 }}>
                     <GallerySlider />
                 </div>
-                {this.state.error === 'web3' ? <div style={{color: 'red'}}>
-                    <h4>Error! Error!</h4>
-                    <p>
-                        Please use <a href='https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?utm_source=chrome-ntp-icon'>
-                            metamask
-                        </a> and switch to network rinkeby test net now.
-                    </p>
-                </div> : null}
+                {this.state.error === 'web3' ? (
+                    <div style={{ color: 'red' }}>
+                        <h4>
+                            Oops, you have not installed MetaMask and/or you are
+                            not connected to the Ethereum Rinkeby test network
+                        </h4>
+                        <p>
+                            You’ll need a safe place to store your rinkeby test
+                            ether so as to interac with this application. The
+                            perfect place is in a secure wallet like MetaMask.
+                            This will also act as your login (no extra password
+                            needed). You need to use a browser such as Chrome.
+                            Please go to {''}
+                            <a href="https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?utm_source=chrome-ntp-icon">
+                                https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?utm_source=chrome-ntp-icon
+                            </a>{' '}
+                            to install MetaMask
+                        </p>
+                    </div>
+                ) : null}
                 <div style={{ marginTop: 50, marginBottom: 50 }}>
                     <h4>The Sanctum Villas, Chiang Mai, Thailand</h4>
                     <p>
@@ -466,9 +487,11 @@ class App extends Component {
                 {this.state.finalized ? (
                     <div className="grid-x">
                         <div className="cell">
-                            <p>{this.state.success
-                                ? 'You won'
-                                : 'Sorry, try again next time.'}</p>
+                            <p>
+                                {this.state.success
+                                    ? 'You won'
+                                    : 'Sorry, try again next time.'}
+                            </p>
                         </div>
                     </div>
                 ) : null}
@@ -550,6 +573,7 @@ class App extends Component {
                             .numberOfTicketsProcessedSuccessfully ? null : (
                             <div className="cell">
                                 <img
+                                    role="presentation"
                                     src={doneImg}
                                     style={{ width: '40px' }}
                                     className="float-center"
@@ -568,6 +592,7 @@ class App extends Component {
                         {this.state.loading ? (
                             <div className="cell">
                                 <img
+                                    role="presentation"
                                     src={loadImg}
                                     style={{ width: '40px' }}
                                     className="float-center"
@@ -590,12 +615,16 @@ class App extends Component {
                         <hr className="cell" />
                     </div>
                 ) : null}
-                <div className="grid-x align-spaced" style={{ marginTop: 45, marginBottom: 45 }}>
+                <div
+                    className="grid-x align-spaced"
+                    style={{ marginTop: 45, marginBottom: 45 }}
+                >
                     <div className="cell">
                         <p className="text-center h4">How it works:</p>
                     </div>
                     <div className="cell small-4">
                         <img
+                            role="presentation"
                             src={etherImg}
                             style={{ width: '40px' }}
                             className="float-center"
@@ -603,6 +632,7 @@ class App extends Component {
                     </div>
                     <div className="cell small-4">
                         <img
+                            role="presentation"
                             src={scanImg}
                             style={{ width: '40px' }}
                             className="float-center"
@@ -610,6 +640,7 @@ class App extends Component {
                     </div>
                     <div className="cell small-4">
                         <img
+                            role="presentation"
                             src={winnerImg}
                             style={{ width: '40px' }}
                             className="float-center"
@@ -622,15 +653,15 @@ class App extends Component {
                     </div>
                     <div className="cell small-4">
                         <p className="text-center h4">
-                            <a href={`https://rinkeby.etherscan.io/address/${address}`}>
+                            <a
+                                href={`https://rinkeby.etherscan.io/address/${contractAddress}`}
+                            >
                                 Check etherscan.io
                             </a>
                         </p>
                     </div>
                     <div className="cell small-4">
-                        <p className="text-center h4">
-                            Winner gets the villa
-                        </p>
+                        <p className="text-center h4">Winner gets the villa</p>
                     </div>
                 </div>
             </div>
