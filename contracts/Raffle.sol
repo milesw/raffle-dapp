@@ -17,7 +17,7 @@ contract Raffle {
     address[] public ticketHolders;
     bool public isFinalized;
     address public raffleWinner;
-    unit256 public randomNumQueryId;
+    bytes32 public randomNumQueryId;
 
     DrawRandomNumber public drawRandomNumber;
 

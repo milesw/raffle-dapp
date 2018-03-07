@@ -1,8 +1,11 @@
 pragma solidity 0.4.19;
 
 import "./SafeMath.sol";
+import "./DrawRandomNumber.sol";
 
-// @dev Raffle smart contract - contains all business logic
+
+// @dev SharesRaffle smart contract
+// the more wei user sends wei to the contract the more chances she has to win the raffle
 contract SharesRaffle {
     using SafeMath for uint256;
 
@@ -10,22 +13,28 @@ contract SharesRaffle {
     uint256 public closeTime;
     uint256 public goal;
     address public escrowWallet;
+    bytes32 public randomNumQueryId;
 
     struct Entry {
-      address buyer;
-      uint256 cap;
+        address buyer;
+        uint256 cap;
     }
+
     Entry[] public entries;
+
     uint256 public totalWei;
     bool public isFinalized;
     address public raffleWinner;
+
+    DrawRandomNumber public drawRandomNumber;
 
     function SharesRaffle
         (
             uint256 _openTime,
             uint256 _closeTime,
             uint256 _goal,
-            address _escrowWallet
+            address _escrowWallet,
+            address _drawRandomNumber
         )
         public
     {
@@ -41,10 +50,16 @@ contract SharesRaffle {
         closeTime = _closeTime;
         goal = _goal;
         escrowWallet = _escrowWallet;
+        drawRandomNumber = DrawRandomNumber(_drawRandomNumber);
     }
 
     modifier withinRafflePeriod() {
         require(now <= closeTime && now >= openTime);
+        _;
+    }
+
+    modifier onlyDrawRandomNumberContract() {
+        require(msg.sender == address(drawRandomNumber));
         _;
     }
 
@@ -55,22 +70,31 @@ contract SharesRaffle {
     {
         require(!isFinalized && msg.value > 0);
 
+        totalWei = totalWei.add(msg.value);
         // Forward funds to escrow
         escrowWallet.transfer(msg.value);
 
-        totalWei += msg.value;
-        entries.push(Entry({buyer: msg.sender, cap: totalWei - 1}));
+        entries.push(Entry({buyer: msg.sender, cap: totalWei.sub(1)}));
 
         if (totalWei >= goal) {
-          finalize();
+            finalize();
         }
     }
 
-    function finalize() internal {
-        if (totalWei > 0) {
-            uint256 winningNumber = drawRandomNumber();
-            raffleWinner = findWinner(winningNumber);
-        }
+    function finalize() public {
+        require(now > closeTime || totalWei >= goal);
+        require(!isFinalized);
+
+        requestRandomNumber();
+    }
+
+    function setWinnerAndFinalize(uint256 winningNumber)
+        public
+        onlyDrawRandomNumberContract
+    {
+        require(raffleWinner == address(0));
+
+        raffleWinner = findWinner(winningNumber);
         isFinalized = true;
     }
 
@@ -98,19 +122,8 @@ contract SharesRaffle {
         return entries[currentIndex].buyer;
     }
 
-    function finalizeByTime() public {
-        require(!isFinalized && now > closeTime);
-        finalize();
-    }
-
-    function finalizeByGoalReached() public {
-        require(!isFinalized && totalWei >= goal);
-        finalize();
-    }
-
-    function drawRandomNumber() internal pure returns(uint256) {
-        // draw number from 0 to totalWei - 1
-        // we don't know how yet
-        return 30;
+    function requestRandomNumber() internal {
+        if (totalWei > 0)
+            randomNumQueryId = drawRandomNumber.generateRandomNum(entries.length, this);
     }
 }

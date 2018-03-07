@@ -1,4 +1,6 @@
 const SharesRaffle = artifacts.require('./SharesRaffle.sol');
+const DrawRandomNumberMock = artifacts.require('./DrawRandomNumberMock.sol');
+
 const { should, ensuresException } = require('./helpers/utils');
 const expect = require('chai').expect;
 const { latestTime, duration, increaseTimeTo } = require('./helpers/timer');
@@ -9,7 +11,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
     const purchaseAmount = new BigNumber(1000);
     const goal = new BigNumber(100e17);
 
-    let raffle, weiRaised;
+    let raffle, weiRaised, drawRandomNumberContract;
     let openTime, closeTime;
 
     const newRaffle = goal => {
@@ -17,7 +19,16 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
         openTime = latestTime() + duration.seconds(20);
         closeTime = openTime + duration.days(60);
 
-        return SharesRaffle.new(openTime, closeTime, goal, escrowWallet);
+        return DrawRandomNumberMock.new().then(drawRandomNumberMockInstance => {
+            drawRandomNumberContract = drawRandomNumberMockInstance;
+            return SharesRaffle.new(
+                openTime,
+                closeTime,
+                goal,
+                escrowWallet,
+                drawRandomNumberContract.address
+            );
+        });
     };
 
     beforeEach('setup contract', async () => {
@@ -43,6 +54,11 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
         it('has an escrowWallet', async () => {
             const raffleEscrowWallet = await raffle.escrowWallet();
             raffleEscrowWallet.should.be.bignumber.equal(escrowWallet);
+        });
+
+        it('has reference to the drawRandomNumber contract', async () => {
+            const drawRandomNumber = await raffle.drawRandomNumber();
+            drawRandomNumber.should.be.equal(drawRandomNumberContract.address);
         });
     });
 
@@ -83,7 +99,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             weiRaised.should.be.bignumber.equal(0);
         });
 
-        it("must NOT allow to enter raffle after goal has been reached", async () => {
+        it('must NOT allow to enter raffle after goal has been reached', async () => {
             // Increase time 50 seconds to ensure we are within raffle period
             await increaseTimeTo(latestTime() + duration.seconds(50));
 
@@ -165,12 +181,27 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
 
     describe('raffle finalization', () => {
         it('cannot finalize once it has already been finalized', async () => {
+            await increaseTimeTo(latestTime() + duration.seconds(50));
+
+            await raffle.submitEntry({
+                value: 1,
+                from: buyer1
+            });
+
+            await raffle.submitEntry({
+                value: 1,
+                from: buyer1
+            });
+
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
+            await raffle.finalize();
+
+            const isFinalized = await raffle.isFinalized();
+            isFinalized.should.be.true;
 
             // Try finalizing again
             try {
-                await raffle.finalizeByTime();
+                await raffle.finalize();
                 assert.fail();
             } catch (e) {
                 ensuresException(e);
@@ -183,18 +214,18 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             await raffle.submitEntry({ value: 1 });
 
             try {
-                await raffle.finalizeByTime();
+                await raffle.finalize();
                 assert.fail();
             } catch (e) {
                 ensuresException(e);
             }
             const isFinalized = await raffle.isFinalized();
-            isFinalized.should.be.false
+            isFinalized.should.be.false;
         });
 
         it('there is no winner when no one has participated in the raffle', async () => {
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
+            await raffle.finalize();
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(
@@ -202,7 +233,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             );
 
             const isFinalized = await raffle.isFinalized();
-            isFinalized.should.be.true;
+            isFinalized.should.be.false;
         });
 
         it('finalizes and has a winner if only 1 person enters', async () => {
@@ -222,7 +253,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             });
 
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
+            await raffle.finalize();
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(buyer2);
@@ -239,7 +270,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
                 from: buyer2
             });
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
+            await raffle.finalize();
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(buyer2);
@@ -248,7 +279,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             isFinalized.should.be.true;
         });
 
-        it('finalizes and has a winner if last entry wins', async () => {
+        it('finalizes and has a winner', async () => {
             await increaseTimeTo(latestTime() + duration.seconds(50));
 
             await raffle.submitEntry({
@@ -269,10 +300,7 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             });
 
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
-
-            const winner = await raffle.raffleWinner();
-            winner.should.be.equal(buyer2);
+            await raffle.finalize();
 
             const isFinalized = await raffle.isFinalized();
             isFinalized.should.be.true;
@@ -299,44 +327,10 @@ contract('SharesRaffle', function([owner, buyer1, buyer2, escrowWallet]) {
             });
 
             await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
+            await raffle.finalize();
 
             const winner = await raffle.raffleWinner();
             winner.should.be.equal(buyer1);
-
-            const isFinalized = await raffle.isFinalized();
-            isFinalized.should.be.true;
-        });
-
-        it('finalizes and has a winner if middle entry wins', async () => {
-            await increaseTimeTo(latestTime() + duration.seconds(50));
-
-            await raffle.submitEntry({
-                value: 20,
-                from: buyer1
-            });
-            await raffle.submitEntry({
-                value: 8,
-                from: buyer1
-            });
-            await raffle.submitEntry({
-                value: 30,
-                from: buyer2
-            });
-            await raffle.submitEntry({
-                value: 14,
-                from: buyer1
-            });
-            await raffle.submitEntry({
-                value: 1000,
-                from: buyer1
-            });
-
-            await increaseTimeTo(latestTime() + duration.days(65));
-            await raffle.finalizeByTime();
-
-            const winner = await raffle.raffleWinner();
-            winner.should.be.equal(buyer2);
 
             const isFinalized = await raffle.isFinalized();
             isFinalized.should.be.true;

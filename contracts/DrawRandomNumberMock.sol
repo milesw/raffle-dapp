@@ -26,7 +26,7 @@ contract DrawRandomNumberMock {
     }
 
     // mock generateRandomNum
-    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable retunrs(uint256) {
+    function generateRandomNum(uint256 _maxRange, address _raffleContractAddress) public payable returns(bytes32) {
         uint256 hardCodedResult = 30;
         // create a mock query id
         bytes32 queryId = keccak256(hardCodedResult);
