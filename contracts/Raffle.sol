@@ -17,6 +17,7 @@ contract Raffle {
     address[] public ticketHolders;
     bool public isFinalized;
     address public raffleWinner;
+    unit256 public randomNumQueryId;
 
     DrawRandomNumber public drawRandomNumber;
 
@@ -107,7 +108,7 @@ contract Raffle {
 
     function requestRandomNumber() public isElegibleToBeFinalized {
         if (ticketsSold() > 0)
-            drawRandomNumber.generateRandomNum(ticketsSold(), this);
+            randomNumQueryId = drawRandomNumber.generateRandomNum(ticketsSold(), this);
     }
 
 }
